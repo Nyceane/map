@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html>  
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <!--The viewport meta tag is used to improve the presentation and behavior of the
+    samples on iOS devices-->
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no">
+    <title>OptiCar</title>
+    <link href='http://fonts.googleapis.com/css?family=Lato&subset=latin,latin-ext' rel='stylesheet' type='text/css'>
+   <link rel="stylesheet" type="text/css" href="http://serverapi.arcgisonline.com/jsapi/arcgis/2.5/js/dojo/dijit/themes/tundra/tundra.css">
+
+    <link rel="stylesheet" href="http://code.jquery.com/ui/1.11.1/themes/smoothness/jquery-ui.css">
+    <script src="http://code.jquery.com/jquery-1.10.2.js"></script>
+    <script src="http://code.jquery.com/ui/1.11.1/jquery-ui.js"></script>
+
+    <link rel="stylesheet" href="http://js.arcgis.com/3.10/js/esri/css/esri.css">
+    <style>
+      html, body, #map {
+        height:100%;
+        width:100%;
+        margin:0;
+        padding:0;
+        font-family: 'Lato';
+
+      }
+      .esriScalebar{
+        padding: 20px 20px; 
+      } 
+      #map{ 
+        padding:0;
+      }
+
+      #pane {
+        top: 30px;
+        right: 30px;
+        width: 240px;
+        height: 90%;
+        overflow-y: scroll;
+        color: #444;
+        background: #fff;
+        position: absolute;
+        z-index: 40;
+        padding: 10px;
+        -moz-border-radius: 8px;
+        -webkit-border-radius: 8px;
+        border-radius: 8px;
+        -webkit-box-shadow: 0px 1px 5px #1C181C;
+        -moz-box-shadow: 0px 1px 5px #1C181C;
+        box-shadow: 0px 1px 5px #1C181C;
+      }
+      #buttons {
+        text-align: center;
+      }
+
+img{
+  width:100%;
+  display:block;
+}
+
+#weatherwrapper
+{
+  width:280px;
+  overflow-x: scroll;   
+}
+/* portafolio */
+#portfolio li img{
+  margin-bottom:5px;
+}
+ul#portfolio{
+  padding: 0px;
+  overflow:auto;
+}
+ul#portfolio li{
+  font-size:10px;
+  float:left;
+  margin:10px;
+  padding:5px;
+  width:19%;
+  list-style:none;
+  text-align:center;
+  background:#FFF;
+  color:#5282BE;
+  /*box-shadow*/
+  -webkit-box-shadow:0 1px 2px #292E31;
+  -moz-box-shadow:0 1px 2px #292E31;
+  box-shadow:0 1px 2px #292E31;
+  z-index:10;
+}
+ul#portfolio a{
+  display:block;
+  color:#444444;
+  font-size:15px;
+  font-style:italic;
+  text-decoration:none;
+}
+ul#portfolio a:hover{
+  text-decoration:underline;
+}
+ul#portfolio img{
+  width:100%;
+  display:block;
+  position:relative;
+  overflow:hidden;
+  z-index:3;
+  /*border-radius*/
+  -webkit-border-radius:0px;
+  -moz-border-radius:0px;
+  border-radius:0px;
+}
+ul#portfolio img{
+  /*transition*/
+  -webkit-transition:top 1s ease, left 1s ease;
+  -moz-transition:top 1s ease, left 1s ease;
+  -o-transition:top 1s ease, left 1s ease;
+  transition:top 1s ease, left 1s ease;
+}
+ul#filter{
+  font-size:16px;
+  list-style:none;
+  background:#2B3C52;
+  /*box-shadow*/
+  -webkit-box-shadow:0 1px 1px #3A3A3A;
+  -moz-box-shadow:0 1px 1px #3A3A3A;
+  box-shadow:0 1px 1px #3A3A3A;
+  margin:0;
+  padding-top:5px;
+  padding-bottom:5px;
+}
+ul#filter li{
+  display:inline-block;
+  line-height:16px;
+  margin-right:2px;
+  padding-right:20px;
+  list-style:none;
+  color:#fff;
+}
+ul#filter a{
+  color:#fff;
+  text-decoration:none;
+}
+ul#filter li.current a, ul#filter a:hover{
+  color:#2AB83B;
+  text-decoration:none;
+}
+
+    </style>
+
+    <script>var dojoConfig = { parseOnLoad: true };</script>
+    <script src="http://js.arcgis.com/3.10/"></script>
+    <script>
+      var map;
+      
+      require([
+        "esri/map",
+        "esri/InfoTemplate",
+        "esri/SpatialReference",
+        "esri/layers/GraphicsLayer",
+        "esri/geometry/Point",
+        "esri/symbols/Font",
+        "esri/symbols/TextSymbol",
+        "esri/symbols/SimpleLineSymbol",
+        "esri/Color",
+        "esri/layers/FeatureLayer",
+        "esri/dijit/PopupTemplate",
+        "esri/request",
+        "esri/geometry/Point",
+        "esri/graphic",
+        "dojo/on",
+        "dojo/_base/array",
+        "dojo/dom",
+        "dojo/domReady!"
+      ], function(
+        Map, 
+        InfoTemplate,
+        SpatialReference,
+        GraphicsLayer,
+        Point,
+        Font,
+        TextSymbol,
+        SimpleLineSymbol,
+        Color,
+        FeatureLayer, 
+        PopupTemplate,
+        esriRequest,
+        Point,
+        Graphic,
+        on,
+        array,
+        dom
+      ) {
+        var featureLayer;
+
+        map = new Map("map", {
+          basemap: "topo",
+          center: [-118.298875, 37.788274],
+          zoom: 6
+        });
+        
+        map.infoWindow.set("popupWindow", false);
+        map.infoWindow.on("selection-change", function(){
+
+          var feature = map.infoWindow.getSelectedFeature();
+          if(feature){
+                 var content = feature.getContent();
+
+                 var html = "";
+                 html += ('<h2>' + feature.attributes.title + '</h2>');
+                 html += feature.attributes.description;
+
+
+                 dom.byId("instructions").innerHTML = html;
+
+                 var airport = feature.attributes.title.substring(0, 3);
+                 console.log(airport);
+
+/*
+                 $.ajax({
+  type: "POST",
+  url: "http://api.wunderground.com/api/c9723e2cf39f278f/forecast10day/q/SFO.json",
+  dataType: "json"
+})
+                .done(function() {
+                  alert( "success" );
+                })
+                .fail(function() {
+                  alert( "error" );
+                })
+                .always(function() {
+                  alert( "complete" );
+                });*/
+
+                     //            console.log('foobar');
+
+                 //$("#instructions").append($(feature.attributes.description));
+                 //console.log(feature.attributes.airport);
+                 //console.log(feature.attributes);
+          }
+        });
+
+      function addWeatherUG(item)
+      {
+        
+          var html = 
+          "<div id=\"weatherwrapper\">" +
+          "<ul id=\"portfolio\">";
+
+          for(i = 0; i < 5; i++)
+          {
+            html = html + "<li class=\"cms design portfolio-item]\">" +
+              "<img src=\"http://placehold.it/200x200/2980b9/FFFFFF\" class=\"superbox-img\"/>" +
+                "Portfolio Name" +
+            "</li>";
+          }
+         html +=  "</ul></div>";
+
+        item += html;
+        //$(item).append("hello world;");
+        return item;
+      }
+
+        if (dojo.isIE) {
+          alert("Oh boy. Looks like you're using IE. This is not going to go well.\n\nTry a different browser for a better experience.");
+        }
+
+        var globals = {};
+        globals.map = map;
+        globals.pointGraphicsLayer = new GraphicsLayer({'id': 'points'});
+        map.addLayer(globals.pointGraphicsLayer); 
+        globals.lineGraphicsLayer = new GraphicsLayer({'id': 'lines'});       
+        map.addLayer(globals.lineGraphicsLayer);
+          
+        globals.outline = new SimpleLineSymbol(SimpleLineSymbol.STYLE_SOLID, new dojo.Color([255, 0, 0, 0.5]), 6);
+        globals.symbol = new esri.symbol.SimpleMarkerSymbol(esri.symbol.SimpleMarkerSymbol.STYLE_CIRCLE, 10, globals.outline, new dojo.Color([255, 0, 0, 1]));
+        // angle of zero makes the plane face east
+        // 90 is south, 180 is west, -90 is north
+        globals.planeSymbol = new esri.symbol.PictureMarkerSymbol("/images/airplane.png", 32, 32).setAngle(0).setOffset(0,0);
+        globals.graphicSR = new esri.SpatialReference({ wkid: 102100 });
+
+        var gl = new GraphicsLayer();
+        map.addLayer(gl);
+
+        //hide the popup if its outside the map's extent
+        map.on("mouse-drag", function(evt) {
+          if (map.infoWindow.isShowing) {
+            var loc = map.infoWindow.getSelectedFeature().geometry;
+            if (!map.extent.contains(loc)) {
+              map.infoWindow.hide();
+            }
+          }
+        });
+
+        //create a feature collection for the flickr photos
+        var featureCollection = {
+          "layerDefinition": null,
+          "featureSet": {
+            "features": [],
+            "geometryType": "esriGeometryPoint"
+          }
+        };
+        featureCollection.layerDefinition = {
+          "geometryType": "esriGeometryPoint",
+          "objectIdField": "ObjectID",
+          "drawingInfo": {
+            "renderer": {
+              "type": "simple",
+              "symbol": {
+                "type": "esriPMS",
+                "url": "images/flickr.png",
+                "contentType": "image/png",
+                "width": 15,
+                "height": 15
+              }
+            }
+          },
+          "fields": [{
+            "name": "ObjectID",
+            "alias": "ObjectID",
+            "type": "esriFieldTypeOID"
+          }, {
+            "name": "description",
+            "alias": "Description",
+            "type": "esriFieldTypeString"
+          }, {
+            "name": "title",
+            "alias": "Title",
+            "type": "esriFieldTypeString"
+          }, {
+            "name": "airport",
+            "alias": "Airport",
+            "type": "esriFieldTypeString"
+          }
+          ]
+        };
+
+        //define a popup template
+        var popupTemplate = new PopupTemplate({
+          title: "{title}",
+          description: "{description}",
+          airport:  "{airport}"
+        });
+        //create a feature layer based on the feature collection
+        featureLayer = new FeatureLayer(featureCollection, {
+          id: "testId",
+          infoTemplate: popupTemplate
+        });
+
+        //associate the features with the popup on click
+        featureLayer.on("click", function(evt) {
+          clearAllGraphics();
+          addHomePt();
+          addPt(evt);
+          showRoute();
+
+
+          //map.infoWindow.setFeatures([evt.graphic]);
+          //map.infoWindow.setContent('afajodfpasfas');
+
+          //console.log(item);
+
+//          map.infoWindow.setContent("blablabla");
+/*          setTimeout(function(){
+            addWeatherUG();
+          }, 100);*/
+        });
+          
+        //dojo.connect(dijit.byId('gobutton'), 'onClick', getFare);
+
+      $(function() {
+        console.log( "ready!" );
+          $( "#datepicker1" ).datepicker();
+          $( "#datepicker1" ).datepicker( "option", "dateFormat", "yy-mm-dd");
+
+          $( "#datepicker2" ).datepicker();
+          $( "#datepicker2" ).datepicker( "option", "dateFormat", "yy-mm-dd");
+
+        $("#gobutton").click(function() {
+            getFare();
+        });
+      });
+
+        map.on("layers-add-result", function(results) {
+          requestPhotos();
+        });
+        //add the feature layer that contains the flickr photos to the map
+        map.addLayers([featureLayer]);
+
+      function getFare()
+      {
+        console.log($('#doh').val());
+
+        var requestHandle = esriRequest({
+          url: "http://notebazaar.com/api.php?action=stuff&orig=SFO&depart=" + $('#datepicker1').val() + "&return=" + $('#datepicker2').val() + "&orig=SFO&max=" + $('#doh').val(),
+          callbackParamName: "jsoncallback"
+        });
+        requestHandle.then(requestSucceeded, requestFailed);
+      }
+
+      function requestPhotos() {
+        //get geotagged photos from flickr
+        //tags=flower&tagmode=all
+        console.log('load');
+
+        var requestHandle = esriRequest({
+          //http://code.jeancarl.com/disrupt/lowfare.php?depart=2014-10-01&return=2014-10-05&airport=SJC&fare=750
+          url: "http://notebazaar.com/api.php?action=stuff&orig=SFO&max=300&depart=2014-11-01",
+          //url: "http://api.flickr.com/services/feeds/geo?&format=json",
+          //url: "http://code.jeancarl.com/disrupt/lowfare.php",
+          callbackParamName: "jsoncallback"
+        });
+        requestHandle.then(requestSucceeded, requestFailed);
+      }
+
+      function requestSucceeded(response, io) {
+        //loop through the items and add to the feature layer
+        console.log('haha');
+        var features = [];
+        //featureLayer.applyEdits(features, null, null);
+        featureLayer.clear();
+        gl.clear();
+/*
+        var item = new Object();
+        item.title = "Foo";
+        item.description = "Bar";
+        item.point = [-122.65,45.53];
+        item.price = "120.20";
+        response.items[0] = item;
+*/
+        array.forEach(response.items, function(item) {
+          var attr = {};
+
+          //item.description = addWeatherUG(item.description);
+
+          attr["description"] = item.description;
+          attr["title"] = item.title ? item.title : "Flight Deal";
+
+          //var geometry = new Point(item);
+
+          //var geometry = new Point(item.point, new SpatialReference({ wkid:4326 }));
+          var geometry = new Point(item);
+          var displayText = item.price;
+              var font = new Font(
+                "10pt",
+                Font.STYLE_NORMAL, 
+                Font.VARIANT_NORMAL,
+                Font.WEIGHT_NORMAL,
+                "Helvetica"
+              );
+             
+              var textSymbol = new TextSymbol(
+                displayText,
+                font,
+                new Color("#000")
+              );
+
+              textSymbol.setHorizontalAlignment("left");
+              textSymbol.setVerticalAlignment("middle");
+              textSymbol.setOffset(10, 0);
+
+              gl.add(new Graphic(geometry, textSymbol));
+
+            var graphic = new Graphic(geometry);
+            graphic.setAttributes(attr);
+            features.push(graphic);
+        });
+
+        featureLayer.applyEdits(features, null, null);
+      }
+
+      function requestFailed(error) {
+        console.log('failed');
+      }
+
+    /** Part for routing **/
+
+
+      function addHomePt()
+      {
+        var point = new Point(-122.378955, 37.621313, new SpatialReference({ wkid: 4326 }));
+        var newPoint = esri.geometry.geographicToWebMercator(point);
+        console.log(newPoint);
+
+        if (globals.map.graphics.graphics.length == 0) {
+          globals.planeGraphic = new Graphic(newPoint , globals.planeSymbol);
+          globals.map.graphics.add(globals.planeGraphic);
+        }
+        var graphic = new Graphic(newPoint, globals.symbol);
+        globals.pointGraphicsLayer.add(graphic);
+      }
+
+      function addPt(evt) { //add a point graphic to the map for each click
+        if (globals.map.graphics.graphics.length == 0) {
+          globals.planeGraphic = new Graphic(evt.mapPoint, globals.planeSymbol);
+          globals.map.graphics.add(globals.planeGraphic);
+        }
+        var graphic = new Graphic(evt.mapPoint, globals.symbol);
+        globals.pointGraphicsLayer.add(graphic);
+      }
+
+      function showRoute() {
+        globals.lineGraphicsLayer.clear();
+        var pLayer = globals.map.getLayer('points');
+        if (pLayer.graphics.length > 1) {
+          var numSegments = pLayer.graphics.length - 1;
+          var segmentDistances = []; // length of each path
+          var segmentSlopes = []; // slope of each path
+          var segmentIncrements = []; // number of increments for each path
+          globals.newPaths = []; // 2D array for points that make up new paths
+          globals.pathAngles = []; // array for path angles to rotate the plane symbol
+          // calc size to increment path by
+          var pathInc = (globals.map.extent.xmax - globals.map.extent.xmin) / 60;
+          
+          // loop through points
+          // calculate how many new paths are required
+          // and points that make up new paths
+          dojo.forEach(pLayer.graphics, function(ptGraphic, idx) {
+            if (pLayer.graphics[idx+1]) {
+              // calc segment distance
+              segmentDistances[idx] = Math.sqrt(Math.pow((pLayer.graphics[idx+1].geometry.x - pLayer.graphics[idx].geometry.x), 2) + Math.pow((pLayer.graphics[idx+1].geometry.y - pLayer.graphics[idx].geometry.y), 2));
+                   
+              // calc segment slope
+              var rise = pLayer.graphics[idx+1].geometry.y - pLayer.graphics[idx].geometry.y
+              var run = pLayer.graphics[idx+1].geometry.x - pLayer.graphics[idx].geometry.x
+              segmentSlopes[idx] = rise / run;
+                   
+              // keep track of the angle for each path
+              // subtract 90 so the plane faces the correct direction
+              globals.pathAngles[idx] = (180/Math.PI) * Math.atan2(run, rise) - 90;
+              segmentIncrements[idx] = parseInt(segmentDistances[idx] / pathInc);
+              globals.newPaths[idx] = [];
+              var xInc = run / segmentIncrements[idx];
+              var yInc = rise / segmentIncrements[idx];
+                   
+              // populate array with new points for a path
+              for (var ptIdx=0; ptIdx<segmentIncrements[idx]; ptIdx++) {
+                var tempX = (yInc*ptIdx/segmentSlopes[idx]) + pLayer.graphics[idx]. geometry.x;
+                var tempY = segmentSlopes[idx] * (xInc*ptIdx) + pLayer.graphics[idx].geometry.y;
+                globals.newPaths[idx].push(new esri.geometry.Point(tempX, tempY, globals.graphicSR));
+              }
+            }
+          }); 
+          globals.planeGraphic.symbol.setAngle(globals.pathAngles[0]);    
+          // add the new path      
+          addPath(0);
+        } else {
+          alert("Go where? Click the map a couple times then click 'Go!'");
+        }
+      }
+    
+      function addPath(pathIndex) {
+        if (globals.map.getLayer('lines').graphics.length == 0) {
+          // need to add a new graphic
+          globals.animatedPl = new esri.geometry.Polyline(globals.graphicSR);
+          globals.animatedPl.addPath([globals.map.getLayer('points').graphics[pathIndex].geometry, globals.newPaths[pathIndex][0]]);
+          var graphicPl = new Graphic(globals.animatedPl, (new SimpleLineSymbol(SimpleLineSymbol.STYLE_SOLID, new dojo.Color([255,0,0,1]), 4)), null, null);
+          globals.map.getLayer('lines').add(graphicPl);
+          // set currentPath and nextPointIndex so extentPl will run
+          globals.currentPath = 0;
+          globals.nextPointIndex = 0;
+        } else if (globals.newPaths[pathIndex]) {
+          // graphic exists, just add a new path to it
+          globals.animatedPl.addPath([globals.map.getLayer('points').graphics[pathIndex].geometry, globals.newPaths[pathIndex][0]]);
+          // rotate the plane
+          globals.planeGraphic.symbol.setAngle(globals.pathAngles[globals.  currentPath]);
+          // reset nextPointIndex so extendPl will run
+          globals.nextPointIndex = 0; 
+        }
+        setTimeout(function(){
+          extendPl();
+        }, 50);
+      }
+    
+
+      function extendPl() {
+        // check if we have a new path to add
+        if (globals.currentPath < globals.newPaths.length) {
+          // check if there is a next point in the array
+          if (globals.nextPointIndex < globals.newPaths[globals.currentPath].length) {
+            var nextPoint = globals.newPaths[globals.currentPath][globals.nextPointIndex];
+            // args:  setPoint(pathIndex, pointIndex, point)
+            globals.animatedPl.setPoint(globals.currentPath, globals.animatedPl.paths[globals.currentPath].length-1, nextPoint);
+            console.log("called set point", nextPoint);
+            // move the plane along the polyline
+            globals.planeGraphic.setGeometry(nextPoint);
+            globals.map.getLayer('lines').graphics[0].setGeometry(globals.animatedPl);
+            globals.nextPointIndex++;
+            setTimeout(function(){
+              extendPl();
+            }, 50);
+          } else {
+            // make last point of the path the next point graphic
+            globals.animatedPl.setPoint(globals.currentPath, globals.animatedPl.paths[globals.currentPath].length-1, globals.map.getLayer('points').graphics[globals.currentPath+1].geometry);
+            globals.planeGraphic.setGeometry(globals.map.getLayer('points').graphics[globals.currentPath+1].geometry);
+            //console.log('cur path: ', currentPath, '; path angle: ', pathAngles[currentPath]);
+            globals.planeGraphic.symbol.setAngle(globals.pathAngles[globals.currentPath]);
+            globals.map.getLayer('lines').graphics[0].setGeometry(globals.animatedPl);
+            addPath(++globals.currentPath); // increment currentPath before sendingn it to addPath
+          }
+        }
+      }
+     
+      function clearAllGraphics() {
+        globals.map.getLayer('points').clear();
+        globals.map.getLayer('lines').clear();
+        globals.map.graphics.clear();
+      }
+      });
+    </script>
+  </head>
+  <body class="tundra">
+      <div id="map">
+        <div id="pane">
+          <img src="images/logo.png" />
+          <div id="buttons">
+            <p style="text-align:right;">Depart Date: <input type="text" id="datepicker1" value="11/01/2014"><br />Arrival date: <input type="text" id="datepicker2" value="11/08/2014"></p>
+            <p>Budget: <input id="doh" type="number" value="300" /></p>
+            <button id="gobutton">Go!</button>
+          </div>
+          
+          <div id="instructions">
+          </div>
+        </div>
+      </div>
+  </body>
+
+</html>
+ 
